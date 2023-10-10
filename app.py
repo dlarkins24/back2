@@ -1,8 +1,11 @@
 from flask import Flask, jsonify, request
 from azure.cosmos import CosmosClient
 import uuid
+from flask_cors import CORS  # Don't forget to install this package
 
 app = Flask(__name__)
+CORS(app)  # This will enable CORS for all routes
+
 
 # Cosmos DB config
 COSMOS_DB_URI = 'https://moorhouseassessment2.documents.azure.com:443/'
