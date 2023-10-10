@@ -59,19 +59,58 @@ def submit_responses():
         session_id = data.get("sessionId")
         responses = data.get("responses")
         
-        # Create a response item to be stored in the database
         response_item = {
-            "id": str(uuid.uuid4()),  # Generate a new UUID for the response item
+            "id": str(uuid.uuid4()),
             "sessionId": session_id,
             "responses": responses
         }
         
-        # Store the response item in the database
         responses_container.create_item(body=response_item)
         
         return jsonify({"status": "success"}), 200
     except Exception as e:
         app.logger.error(f"Error submitting responses: {str(e)}")
+        return jsonify({"error": "Internal Server Error"}), 500
+
+# Additional code:
+
+def calculate_averages(responses):
+    theme_totals = {}
+    theme_counts = {}
+
+    for response in responses:
+        for _, question_response in response["responses"].items():
+            theme = question_response["theme"]
+            score = question_response["score"]
+
+            if theme not in theme_totals:
+                theme_totals[theme] = 0
+                theme_counts[theme] = 0
+
+            theme_totals[theme] += score
+            theme_counts[theme] += 1
+
+    averages = []
+    for theme, total in theme_totals.items():
+        average = total / theme_counts[theme]
+        averages.append({"theme": theme, "averageScore": average})
+
+    return averages
+
+@app.route('/get-averages', methods=['POST'])
+def get_averages():
+    try:
+        data = request.get_json()
+        session_id = data.get("sessionId")
+
+        responses_query = f"SELECT * FROM c WHERE c.sessionId = '{session_id}'"
+        responses = list(responses_container.query_items(query=responses_query, enable_cross_partition_query=True))
+
+        averages = calculate_averages(responses)
+
+        return jsonify({"scores": averages})
+    except Exception as e:
+        app.logger.error(f"Error fetching averages: {str(e)}")
         return jsonify({"error": "Internal Server Error"}), 500
 
 if __name__ == '__main__':
