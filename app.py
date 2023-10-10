@@ -1,9 +1,11 @@
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
 from flask_cors import CORS
 import uuid
 
 app = Flask(__name__)
-CORS(app)  # Enbale CORS for all domins
+
+# Enable CORS for specific origins (for production and development)
+CORS(app, resources={r"/*": {"origins": ["https://brave-coast-00c913710.3.azurestaticapps.net"]}})
 
 @app.route('/start-session', methods=['POST'])
 def start_session():
