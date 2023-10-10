@@ -3,7 +3,7 @@ from flask_cors import CORS
 import uuid
 
 app = Flask(__name__)
-CORS(app)  # Enable CORS for all domains
+CORS(app)  # Enable CORS for all domans
 
 @app.route('/start-session', methods=['POST'])
 def start_session():
