@@ -1,10 +1,10 @@
-# Importing necessary libraries and modules
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, send_from_directory
 from azure.cosmos import CosmosClient
 import uuid
 from collections import defaultdict
+import os
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder='survey-app/build')
 
 # Cosmos DB config
 COSMOS_DB_URI = 'https://moorhouseassessment2.documents.azure.com:443/'
@@ -156,6 +156,14 @@ def get_averages():
     except Exception as e:
         app.logger.error(f"Error fetching averages: {str(e)}")
         return jsonify({"error": "Internal Server Error"}), 500
+
+@app.route('/', defaults={'path': ''})
+@app.route('/<path:path>')
+def serve(path):
+    if path != "" and os.path.exists(app.static_folder + '/' + path):
+        return send_from_directory(app.static_folder, path)
+    else:
+        return send_from_directory(app.static_folder, 'index.html')
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
