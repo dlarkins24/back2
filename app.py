@@ -14,6 +14,8 @@ QUESTIONS_CONTAINER = 'Phase1Questions'
 RESPONSES_CONTAINER = 'Phase1Responses'
 ROLES_CONTAINER = 'Roles'
 REGISTERED_USERS_CONTAINER = 'RegisteredUsers'  # Added this line
+PHASE2_QUESTIONS_CONTAINER = 'Phase2Questions'  # Added this line
+PHASE2_RESPONSES_CONTAINER = 'Phase2Responses'  # Added this line
 
 client = CosmosClient(COSMOS_DB_URI, credential=COSMOS_DB_KEY)
 database = client.get_database_client(COSMOS_DB_DATABASE)
@@ -22,6 +24,8 @@ questions_container = database.get_container_client(QUESTIONS_CONTAINER)
 responses_container = database.get_container_client(RESPONSES_CONTAINER)
 roles_container = database.get_container_client(ROLES_CONTAINER)
 users_container = database.get_container_client(REGISTERED_USERS_CONTAINER)
+phase2_questions_container = database.get_container_client(PHASE2_QUESTIONS_CONTAINER)  # Added this line
+phase2_responses_container = database.get_container_client(PHASE2_RESPONSES_CONTAINER)
 
 @app.route('/start-session', methods=['POST'])
 def start_session():
@@ -156,7 +160,54 @@ def get_averages():
     except Exception as e:
         app.logger.error(f"Error fetching averages: {str(e)}")
         return jsonify({"error": "Internal Server Error"}), 500
+@app.route('/get-phase2-questions', methods=['POST'])
+def get_phase2_questions():
+    try:
+        data = request.get_json()
+        selected_themes = data.get("themes", [])
 
+        questions_query = "SELECT * FROM c WHERE c.theme IN @selected_themes"
+        params = [{"name": "@selected_themes", "value": selected_themes}]
+        questions = list(phase2_questions_container.query_items(query=questions_query, parameters=params, enable_cross_partition_query=True))
+
+        grouped_questions = defaultdict(list)
+        for question in questions:
+            theme = question.get("theme", "")
+            grouped_questions[theme].append({
+                "id": question["id"],
+                "text": question["text"],
+                "phase": question.get("phase", "")
+            })
+
+        formatted_questions = [
+            {"theme": theme, "questions": qs} for theme, qs in grouped_questions.items()
+        ]
+
+        return jsonify({"questions": formatted_questions})
+    except Exception as e:
+        app.logger.error(f"Error fetching phase 2 questions: {str(e)}")
+        return jsonify({"error": "Internal Server Error"}), 500
+
+@app.route('/submit-phase2-responses', methods=['POST'])
+def submit_phase2_responses():
+    try:
+        data = request.get_json()
+        session_id = data.get("sessionId")
+        responses = data.get("responses")
+
+        response_item = {
+            "id": str(uuid.uuid4()),
+            "sessionId": session_id,
+            "responses": responses
+        }
+
+        phase2_responses_container.create_item(body=response_item)  # Added this line
+
+        return jsonify({"status": "success"}), 200
+    except Exception as e:
+        app.logger.error(f"Error submitting phase 2 responses: {str(e)}")
+        return jsonify({"error": "Internal Server Error"}), 500
+        
 @app.route('/', defaults={'path': ''})
 @app.route('/<path:path>')
 def serve(path):
