@@ -165,10 +165,12 @@ def get_phase2_questions():
     try:
         data = request.get_json()
         selected_themes = data.get("themes", [])
+        app.logger.info(f"Received themes: {selected_themes}")
 
         questions_query = "SELECT * FROM c WHERE c.theme IN @selected_themes"
         params = [{"name": "@selected_themes", "value": selected_themes}]
         questions = list(phase2_questions_container.query_items(query=questions_query, parameters=params, enable_cross_partition_query=True))
+        app.logger.info(f"Retrieved questions: {questions}")
 
         grouped_questions = defaultdict(list)
         for question in questions:
