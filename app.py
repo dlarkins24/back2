@@ -165,11 +165,18 @@ def get_phase2_questions():
     try:
         data = request.get_json()
         selected_themes = data.get("themes", [])
+        
         app.logger.info(f"Received themes: {selected_themes}")
 
-        questions_query = "SELECT * FROM c WHERE c.theme IN @selected_themes"
-        params = [{"name": "@selected_themes", "value": selected_themes}]
-        questions = list(phase2_questions_container.query_items(query=questions_query, parameters=params, enable_cross_partition_query=True))
+        # Ensure that the themes are valid to prevent SQL injection
+        valid_themes = ["Technical Knowledge", "Soft Skills"]  # Add all valid themes here
+        selected_themes = [theme for theme in selected_themes if theme in valid_themes]
+
+        # Constructing the SQL query string
+        themes_str = ", ".join([f"'{theme}'" for theme in selected_themes])
+        questions_query = f"SELECT * FROM c WHERE c.theme IN ({themes_str})"
+        
+        questions = list(phase2_questions_container.query_items(query=questions_query, enable_cross_partition_query=True))
         app.logger.info(f"Retrieved questions: {questions}")
 
         grouped_questions = defaultdict(list)
@@ -189,6 +196,7 @@ def get_phase2_questions():
     except Exception as e:
         app.logger.error(f"Error fetching phase 2 questions: {str(e)}")
         return jsonify({"error": "Internal Server Error"}), 500
+
 
 @app.route('/submit-phase2-responses', methods=['POST'])
 def submit_phase2_responses():
