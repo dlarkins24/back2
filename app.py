@@ -1,3 +1,4 @@
+# Importing necessary libraries and modules
 from flask import Flask, jsonify, request
 from azure.cosmos import CosmosClient
 import uuid
@@ -11,12 +12,16 @@ COSMOS_DB_KEY = 'J96F3DjCf6ds63Kuv0z2RPKYWBlNbC6xVNqMHRphWbKXWG6FWpQSdLrgpQ6lnzi
 COSMOS_DB_DATABASE = 'MMADB'
 QUESTIONS_CONTAINER = 'Phase1Questions'
 RESPONSES_CONTAINER = 'Phase1Responses'
+ROLES_CONTAINER = 'Roles'
+REGISTERED_USERS_CONTAINER = 'RegisteredUsers'  # Added this line
 
 client = CosmosClient(COSMOS_DB_URI, credential=COSMOS_DB_KEY)
 database = client.get_database_client(COSMOS_DB_DATABASE)
 
 questions_container = database.get_container_client(QUESTIONS_CONTAINER)
 responses_container = database.get_container_client(RESPONSES_CONTAINER)
+roles_container = database.get_container_client(ROLES_CONTAINER)
+users_container = database.get_container_client(REGISTERED_USERS_CONTAINER)
 
 @app.route('/start-session', methods=['POST'])
 def start_session():
@@ -52,6 +57,20 @@ def get_questions():
         app.logger.error(f"Error fetching questions: {str(e)}")
         return jsonify({"error": "Internal Server Error"}), 500
 
+@app.route('/get-roles', methods=['GET'])
+def get_roles():
+    try:
+        roles_query = "SELECT * FROM c"
+        queried_roles = list(roles_container.query_items(query=roles_query, enable_cross_partition_query=True))
+        
+        # Extract 'title' from each role entry
+        role_titles = [role['title'] for role in queried_roles]
+
+        return jsonify({"roles": role_titles})
+    except Exception as e:
+        app.logger.error(f"Error fetching roles: {str(e)}")
+        return jsonify({"error": "Internal Server Error"}), 500
+
 @app.route('/submit-responses', methods=['POST'])
 def submit_responses():
     try:
@@ -70,6 +89,31 @@ def submit_responses():
         return jsonify({"status": "success"}), 200
     except Exception as e:
         app.logger.error(f"Error submitting responses: {str(e)}")
+        return jsonify({"error": "Internal Server Error"}), 500
+        
+@app.route('/register-user', methods=['POST'])
+def register_user():
+    try:
+        data = request.get_json()
+        name = data.get("name")
+        email = data.get("email")
+        role = data.get("role")
+        session_id = data.get("sessionId")
+        
+        new_user = {
+            "id": str(uuid.uuid4()),  # Generate a new UUID for the user
+            "name": name,
+            "email": email,
+            "role": role,
+            "sessionId": session_id
+        }
+        
+        # Add the new user to the RegisteredUsers container
+        users_container.create_item(body=new_user)
+
+        return jsonify({"status": "success"}), 200
+    except Exception as e:
+        app.logger.error(f"Error registering user: {str(e)}")
         return jsonify({"error": "Internal Server Error"}), 500
 
 # Additional code:
