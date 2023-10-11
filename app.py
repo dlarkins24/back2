@@ -168,9 +168,6 @@ def get_phase2_questions():
         
         app.logger.info(f"Received themes: {selected_themes}")
 
-        # Ensure that the themes are valid to prevent SQL injection
-        valid_themes = ["Technical Knowledge", "Soft Skills"]  # Add all valid themes here
-        selected_themes = [theme for theme in selected_themes if theme in valid_themes]
 
         # Constructing the SQL query string
         themes_str = ", ".join([f"'{theme}'" for theme in selected_themes])
