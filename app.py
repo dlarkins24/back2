@@ -49,7 +49,8 @@ def get_questions():
             grouped_questions[theme].append({
                 "id": question["id"],
                 "text": question["text"],
-                "phase": question.get("phase", "")
+                "phase": question.get("phase", ""),
+                "options": question.get("options", [])  # Fetching options from DB
             })
 
         formatted_questions = [
