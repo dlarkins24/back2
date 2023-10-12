@@ -211,7 +211,7 @@ def submit_phase2_responses():
         return jsonify({"error": "Internal Server Error"}), 500
 
 @app.route('/get-phase2-score-descriptions', methods=['GET'])
-def get_all_phase2_score_descriptions():
+def get_phase2_score_descriptions():
     try:
         descriptions_query = "SELECT * FROM c"
         descriptions = list(phase2_score_descriptions_container.query_items(query=descriptions_query, enable_cross_partition_query=True))
@@ -219,7 +219,7 @@ def get_all_phase2_score_descriptions():
     except Exception as e:
         app.logger.error(f"Error fetching score descriptions: {str(e)}")
         return jsonify({"error": "Internal Server Error"}), 500
-        
+
 @app.route('/get-phase2-averages', methods=['POST'])
 def get_phase2_averages():
     try:
