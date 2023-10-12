@@ -160,21 +160,14 @@ def get_averages():
     except Exception as e:
         app.logger.error(f"Error fetching averages: {str(e)}")
         return jsonify({"error": "Internal Server Error"}), 500
-@app.route('/get-phase2-questions', methods=['POST'])
+@app.route('/get-phase2-questions', methods=['GET'])  # Changed method to GET
 def get_phase2_questions():
     try:
-        data = request.get_json()
-        selected_themes = data.get("themes", [])
         
-        app.logger.info(f"Received themes: {selected_themes}")
 
-
-        # Constructing the SQL query string
-        themes_str = ", ".join([f"'{theme}'" for theme in selected_themes])
-        questions_query = f"SELECT * FROM c WHERE c.theme IN ({themes_str})"
-        
+        # Fetch all questions, without filtering by theme
+        questions_query = "SELECT * FROM c"
         questions = list(phase2_questions_container.query_items(query=questions_query, enable_cross_partition_query=True))
-        app.logger.info(f"Retrieved questions: {questions}")
 
         grouped_questions = defaultdict(list)
         for question in questions:
@@ -193,7 +186,6 @@ def get_phase2_questions():
     except Exception as e:
         app.logger.error(f"Error fetching phase 2 questions: {str(e)}")
         return jsonify({"error": "Internal Server Error"}), 500
-
 
 @app.route('/submit-phase2-responses', methods=['POST'])
 def submit_phase2_responses():
