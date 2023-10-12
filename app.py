@@ -16,6 +16,7 @@ ROLES_CONTAINER = 'Roles'
 REGISTERED_USERS_CONTAINER = 'RegisteredUsers'  # Added this line
 PHASE2_QUESTIONS_CONTAINER = 'Phase2Questions'  # Added this line
 PHASE2_RESPONSES_CONTAINER = 'Phase2Responses'  # Added this line
+PHASE2_SCORE_DESCRIPTIONS_CONTAINER = 'Phase2ScoreDescriptions'
 
 client = CosmosClient(COSMOS_DB_URI, credential=COSMOS_DB_KEY)
 database = client.get_database_client(COSMOS_DB_DATABASE)
@@ -26,6 +27,7 @@ roles_container = database.get_container_client(ROLES_CONTAINER)
 users_container = database.get_container_client(REGISTERED_USERS_CONTAINER)
 phase2_questions_container = database.get_container_client(PHASE2_QUESTIONS_CONTAINER)  # Added this line
 phase2_responses_container = database.get_container_client(PHASE2_RESPONSES_CONTAINER)
+phase2_score_descriptions_container = database.get_container_client(PHASE2_SCORE_DESCRIPTIONS_CONTAINER)
 
 @app.route('/start-session', methods=['POST'])
 def start_session():
@@ -161,22 +163,21 @@ def get_averages():
     except Exception as e:
         app.logger.error(f"Error fetching averages: {str(e)}")
         return jsonify({"error": "Internal Server Error"}), 500
-@app.route('/get-phase2-questions', methods=['GET'])  # Changed method to GET
+
+@app.route('/get-phase2-questions', methods=['GET'])
 def get_phase2_questions():
     try:
-        
-
-        # Fetch all questions, without filtering by theme
         questions_query = "SELECT * FROM c"
         questions = list(phase2_questions_container.query_items(query=questions_query, enable_cross_partition_query=True))
-
+        
         grouped_questions = defaultdict(list)
         for question in questions:
             theme = question.get("theme", "")
             grouped_questions[theme].append({
                 "id": question["id"],
                 "text": question["text"],
-                "phase": question.get("phase", "")
+                "phase": question.get("phase", ""),
+                "options": question.get("options", [])  # Fetching options from DB
             })
 
         formatted_questions = [
@@ -187,6 +188,7 @@ def get_phase2_questions():
     except Exception as e:
         app.logger.error(f"Error fetching phase 2 questions: {str(e)}")
         return jsonify({"error": "Internal Server Error"}), 500
+
 
 @app.route('/submit-phase2-responses', methods=['POST'])
 def submit_phase2_responses():
@@ -206,6 +208,58 @@ def submit_phase2_responses():
         return jsonify({"status": "success"}), 200
     except Exception as e:
         app.logger.error(f"Error submitting phase 2 responses: {str(e)}")
+        return jsonify({"error": "Internal Server Error"}), 500
+
+@app.route('/get-phase2-score-descriptions', methods=['GET'])
+def get_all_phase2_score_descriptions():
+    try:
+        descriptions_query = "SELECT * FROM c"
+        descriptions = list(phase2_score_descriptions_container.query_items(query=descriptions_query, enable_cross_partition_query=True))
+        return jsonify({"descriptions": descriptions})
+    except Exception as e:
+        app.logger.error(f"Error fetching score descriptions: {str(e)}")
+        return jsonify({"error": "Internal Server Error"}), 500
+        
+@app.route('/get-phase2-averages', methods=['POST'])
+def get_phase2_averages():
+    try:
+        data = request.get_json()
+        session_id = data.get("sessionId")
+
+        # Query specifically from the Phase 2 responses container
+        responses_query = f"SELECT * FROM c WHERE c.sessionId = '{session_id}'"
+        responses = list(phase2_responses_container.query_items(query=responses_query, enable_cross_partition_query=True))
+
+        # Function to calculate averages - may need adjusting based on response structure
+        def calculate_averages(responses):
+            theme_totals = {}
+            theme_counts = {}
+
+            for response in responses:
+                for _, question_response in response["responses"].items():
+                    theme = question_response["theme"]
+                    score = question_response["score"]
+
+                    if theme not in theme_totals:
+                        theme_totals[theme] = 0
+                        theme_counts[theme] = 0
+
+                    theme_totals[theme] += score
+                    theme_counts[theme] += 1
+
+            averages = []
+            for theme, total in theme_totals.items():
+                average = total / theme_counts[theme]
+                averages.append({"theme": theme, "averageScore": average})
+
+            return averages
+
+        # Calculate the averages using the function
+        averages = calculate_averages(responses)
+
+        return jsonify({"scores": averages})
+    except Exception as e:
+        app.logger.error(f"Error fetching Phase 2 averages: {str(e)}")
         return jsonify({"error": "Internal Server Error"}), 500
         
 @app.route('/', defaults={'path': ''})
