@@ -272,7 +272,7 @@ def get_departments():
     try:
         departments_query = "SELECT * FROM c"
         queried_departments = list(departments_container.query_items(query=departments_query, enable_cross_partition_query=True))
-        department_names = [dept['name'] for dept in queried_departments]
+        department_names = [dept['title'] for dept in queried_departments]
         return jsonify({"departments": department_names})
     except Exception as e:
         app.logger.error(f"Error fetching departments: {str(e)}")
