@@ -17,6 +17,7 @@ REGISTERED_USERS_CONTAINER = 'RegisteredUsers'  # Added this line
 PHASE2_QUESTIONS_CONTAINER = 'Phase2Questions'  # Added this line
 PHASE2_RESPONSES_CONTAINER = 'Phase2Responses'  # Added this line
 PHASE2_SCORE_DESCRIPTIONS_CONTAINER = 'Phase2ScoreDescriptions'
+DEPARTMENTS_CONTAINER = 'Departments'
 
 client = CosmosClient(COSMOS_DB_URI, credential=COSMOS_DB_KEY)
 database = client.get_database_client(COSMOS_DB_DATABASE)
@@ -28,6 +29,7 @@ users_container = database.get_container_client(REGISTERED_USERS_CONTAINER)
 phase2_questions_container = database.get_container_client(PHASE2_QUESTIONS_CONTAINER)  # Added this line
 phase2_responses_container = database.get_container_client(PHASE2_RESPONSES_CONTAINER)
 phase2_score_descriptions_container = database.get_container_client(PHASE2_SCORE_DESCRIPTIONS_CONTAINER)
+departments_container = database.get_container_client(DEPARTMENTS_CONTAINER)
 
 @app.route('/start-session', methods=['POST'])
 def start_session():
@@ -105,23 +107,26 @@ def register_user():
         name = data.get("name")
         email = data.get("email")
         role = data.get("role")
+        organization = data.get("organization")
+        department = data.get("department")
         session_id = data.get("sessionId")
         
         new_user = {
-            "id": str(uuid.uuid4()),  # Generate a new UUID for the user
+            "id": str(uuid.uuid4()),
             "name": name,
             "email": email,
             "role": role,
+            "organization": organization,
+            "department": department,
             "sessionId": session_id
         }
         
-        # Add the new user to the RegisteredUsers container
         users_container.create_item(body=new_user)
-
         return jsonify({"status": "success"}), 200
     except Exception as e:
         app.logger.error(f"Error registering user: {str(e)}")
         return jsonify({"error": "Internal Server Error"}), 500
+
 
 # Additional code:
 
@@ -261,6 +266,18 @@ def get_phase2_averages():
     except Exception as e:
         app.logger.error(f"Error fetching Phase 2 averages: {str(e)}")
         return jsonify({"error": "Internal Server Error"}), 500
+
+@app.route('/get-departments', methods=['GET'])
+def get_departments():
+    try:
+        departments_query = "SELECT * FROM c"
+        queried_departments = list(departments_container.query_items(query=departments_query, enable_cross_partition_query=True))
+        department_names = [dept['name'] for dept in queried_departments]
+        return jsonify({"departments": department_names})
+    except Exception as e:
+        app.logger.error(f"Error fetching departments: {str(e)}")
+        return jsonify({"error": "Internal Server Error"}), 500
+
         
 @app.route('/', defaults={'path': ''})
 @app.route('/<path:path>')
