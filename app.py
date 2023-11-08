@@ -19,6 +19,9 @@ PHASE2_RESPONSES_CONTAINER = 'Phase2Responses'  # Added this line
 PHASE2_SCORE_DESCRIPTIONS_CONTAINER = 'Phase2ScoreDescriptions'
 DEPARTMENTS_CONTAINER = 'Departments'
 WELCOME_RESPONSES_CONTAINER = 'Welcomeresponses'  # Name of your new container
+INDUSTRIES_CONTAINER = 'Industries'
+ORGSIZES_CONTAINER = 'OrgSizes'
+
 
 client = CosmosClient(COSMOS_DB_URI, credential=COSMOS_DB_KEY)
 database = client.get_database_client(COSMOS_DB_DATABASE)
@@ -32,6 +35,9 @@ phase2_responses_container = database.get_container_client(PHASE2_RESPONSES_CONT
 phase2_score_descriptions_container = database.get_container_client(PHASE2_SCORE_DESCRIPTIONS_CONTAINER)
 departments_container = database.get_container_client(DEPARTMENTS_CONTAINER)
 welcome_responses_container = database.get_container_client(WELCOME_RESPONSES_CONTAINER)
+industries_container = database.get_container_client(INDUSTRIES_CONTAINER)
+orgsizes_container = database.get_container_client(ORGSIZES_CONTAINER)
+
 
 @app.route('/start-session', methods=['POST'])
 def start_session():
@@ -300,6 +306,28 @@ def submit_welcome_responses():
         return jsonify({"status": "success"}), 200
     except Exception as e:
         app.logger.error(f"Error submitting welcome responses: {str(e)}")
+        return jsonify({"error": "Internal Server Error"}), 500
+
+@app.route('/get-industries', methods=['GET'])
+def get_industries():
+    try:
+        industries_query = "SELECT c.industryName FROM c"
+        industries = list(industries_container.query_items(query=industries_query, enable_cross_partition_query=True))
+        industries_list = [industry['title'] for industry in industries]
+        return jsonify({"industries": industries_list})
+    except Exception as e:
+        app.logger.error(f"Error fetching industries: {str(e)}")
+        return jsonify({"error": "Internal Server Error"}), 500
+
+@app.route('/get-org-sizes', methods=['GET'])
+def get_org_sizes():
+    try:
+        org_sizes_query = "SELECT c.sizeName FROM c"
+        org_sizes = list(org_sizes_container.query_items(query=org_sizes_query, enable_cross_partition_query=True))
+        org_sizes_list = [size['title'] for size in org_sizes]
+        return jsonify({"orgSizes": org_sizes_list})
+    except Exception as e:
+        app.logger.error(f"Error fetching organization sizes: {str(e)}")
         return jsonify({"error": "Internal Server Error"}), 500
 
 
