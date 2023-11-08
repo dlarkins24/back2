@@ -18,6 +18,7 @@ PHASE2_QUESTIONS_CONTAINER = 'Phase2Questions'  # Added this line
 PHASE2_RESPONSES_CONTAINER = 'Phase2Responses'  # Added this line
 PHASE2_SCORE_DESCRIPTIONS_CONTAINER = 'Phase2ScoreDescriptions'
 DEPARTMENTS_CONTAINER = 'Departments'
+WELCOME_RESPONSES_CONTAINER = 'Welcomeresponses'  # Name of your new container
 
 client = CosmosClient(COSMOS_DB_URI, credential=COSMOS_DB_KEY)
 database = client.get_database_client(COSMOS_DB_DATABASE)
@@ -30,6 +31,7 @@ phase2_questions_container = database.get_container_client(PHASE2_QUESTIONS_CONT
 phase2_responses_container = database.get_container_client(PHASE2_RESPONSES_CONTAINER)
 phase2_score_descriptions_container = database.get_container_client(PHASE2_SCORE_DESCRIPTIONS_CONTAINER)
 departments_container = database.get_container_client(DEPARTMENTS_CONTAINER)
+welcome_responses_container = database.get_container_client(WELCOME_RESPONSES_CONTAINER)
 
 @app.route('/start-session', methods=['POST'])
 def start_session():
@@ -277,6 +279,29 @@ def get_departments():
     except Exception as e:
         app.logger.error(f"Error fetching departments: {str(e)}")
         return jsonify({"error": "Internal Server Error"}), 500
+@app.route('/submit-welcome-responses', methods=['POST'])
+
+def submit_welcome_responses():
+    try:
+        data = request.get_json()
+        industry = data.get("industry")
+        orgSize = data.get("orgSize")
+        session_id = data.get("sessionId")  # This assumes the session ID is sent in the request
+
+        welcome_response_item = {
+            "id": str(uuid.uuid4()),
+            "sessionId": session_id,  # Store the session ID in the document
+            "industry": industry,
+            "orgSize": orgSize
+        }
+        
+        welcome_responses_container.create_item(body=welcome_response_item)
+        
+        return jsonify({"status": "success"}), 200
+    except Exception as e:
+        app.logger.error(f"Error submitting welcome responses: {str(e)}")
+        return jsonify({"error": "Internal Server Error"}), 500
+
 
         
 @app.route('/', defaults={'path': ''})
