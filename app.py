@@ -36,7 +36,7 @@ phase2_score_descriptions_container = database.get_container_client(PHASE2_SCORE
 departments_container = database.get_container_client(DEPARTMENTS_CONTAINER)
 welcome_responses_container = database.get_container_client(WELCOME_RESPONSES_CONTAINER)
 industries_container = database.get_container_client(INDUSTRIES_CONTAINER)
-org_sizes_container = database.get_container_client(ORG_SIZES_CONTAINER)
+orgsizes_container = database.get_container_client(ORGSIZES_CONTAINER)
 
 
 @app.route('/start-session', methods=['POST'])
