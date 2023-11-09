@@ -20,7 +20,7 @@ PHASE2_SCORE_DESCRIPTIONS_CONTAINER = 'Phase2ScoreDescriptions'
 DEPARTMENTS_CONTAINER = 'Departments'
 WELCOME_RESPONSES_CONTAINER = 'Welcomeresponses'  # Name of your new container
 INDUSTRIES_CONTAINER = 'Industries'
-ORGSIZES_CONTAINER = 'OrgSizes'
+ORGSIZES_CONTAINER = 'Org Sizes'
 
 
 client = CosmosClient(COSMOS_DB_URI, credential=COSMOS_DB_KEY)
@@ -311,7 +311,7 @@ def submit_welcome_responses():
 @app.route('/get-industries', methods=['GET'])
 def get_industries():
     try:
-        industries_query = "SELECT c.industryName FROM c"
+        industries_query = "SELECT * FROM c"
         industries = list(industries_container.query_items(query=industries_query, enable_cross_partition_query=True))
         industries_list = [industry['title'] for industry in industries]
         return jsonify({"industries": industries_list})
@@ -322,7 +322,7 @@ def get_industries():
 @app.route('/get-org-sizes', methods=['GET'])
 def get_org_sizes():
     try:
-        org_sizes_query = "SELECT c.sizeName FROM c"
+        org_sizes_query = "SELECT * FROM c"
         org_sizes = list(org_sizes_container.query_items(query=org_sizes_query, enable_cross_partition_query=True))
         org_sizes_list = [size['title'] for size in org_sizes]
         return jsonify({"orgSizes": org_sizes_list})
@@ -331,6 +331,7 @@ def get_org_sizes():
         return jsonify({"error": "Internal Server Error"}), 500
 
 
+@app.route('/submit-welcome-responses', methods=['POST'])
         
 @app.route('/', defaults={'path': ''})
 @app.route('/<path:path>')
